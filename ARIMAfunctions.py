@@ -151,7 +151,7 @@ def findmodelOrder(data):
     model = auto_arima(data, 
                       m=12,               # frequency of series                      
                       seasonal=False,     # TRUE if seasonal series
-                      d=0,             # let model determine 'd'
+                      d=None,             # let model determine 'd'
                       test='adf',         # use adftest to find optimal 'd'
                       start_p=0, start_q=0, # minimum p and q
                       max_p=12, max_q=12, # maximum p and q
