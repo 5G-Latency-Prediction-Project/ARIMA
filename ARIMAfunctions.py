@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 from statsmodels.tsa.stattools import adfuller, acf, pacf
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.arima.model import ARIMA
-#from sklearn.metrics import mean_absolute_percentage_error
+from sklearn.metrics import mean_absolute_percentage_error
+from pytictoc import TicToc
 from sklearn.metrics import mean_squared_error
 from pmdarima.arima import auto_arima
 import itertools
@@ -149,7 +150,7 @@ def traintestSplit(data, percent):
 
 def findmodelOrder(data):
     model = auto_arima(data, 
-                      m=12,               # frequency of series                      
+                      m=1,               # frequency of series                      
                       seasonal=False,     # TRUE if seasonal series
                       d=None,             # let model determine 'd'
                       test='adf',         # use adftest to find optimal 'd'
@@ -176,16 +177,15 @@ def rollingForecast(data,test,predlen,order):
         train.pop(0)
     return predictions
 
-def mean_absolute_percentage_error(y_true, y_pred): 
-    y_true, y_pred = np.array(y_true), np.array(y_pred)
-    return np.mean(np.abs((y_true - y_pred) /y_true))*100
+# def mean_absolute_percentage_error(y_true, y_pred): 
+#     y_true, y_pred = np.array(y_true), np.array(y_pred)
+#     return np.mean(np.abs((y_true - y_pred) /y_true))*100
 
 def forecastResult(train,test,order):
     predlen = len(test)
     predictions = rollingForecast(train,test,predlen,order)
-    mape = mean_absolute_percentage_error(test, predictions)
- 
-    print(mape)
+    mape = mean_absolute_percentage_error(test.values, predictions)*100
+    print(mape,'%')
 
     # Plotting the original data and the fitted values
     plt.figure(figsize=(12, 6))
@@ -197,18 +197,20 @@ def forecastResult(train,test,order):
     plt.ylabel('Wall Latency')
     plt.legend()
     plt.show()
-  
+    
+
 
 
 if __name__ == "__main__":
     warnings.filterwarnings("ignore")
+    t = TicToc()
     # Data preparation
     file_path = '02 latency measurement/session13-UL/10-42-3-2_55500_20231113_134426.parquet'  # Replace with your .parquet file path
     dfdelays = getDelaydata(file_path)
-    dfwindata = pd.read_csv("02 latency measurement/session13-UL/10-42-3-2_55500_20231113_134426_moving_average_window_10.csv",index_col=False)
+    dfwindata = pd.read_csv("02 latency measurement/session13-UL/10-42-3-2_55500_20231113_134426_moving_subsampled_window_15_rate_5.csv",index_col=False)
     dfwindata = dfwindata["0"]
-    sliced_data = sliceData(dfdelays, start_index=4000, length=500)
-    sliced_data2 = sliceData(dfwindata, start_index=4000, length=500)
+    sliced_data = sliceData(dfdelays, start_index=50000, length=500)
+    sliced_data2 = sliceData(dfwindata, start_index=50000, length=500)
     #draw_patterns(sliced_data,size=20)
     #draw_acf_pacf(sliced_data,lags=30)
     #test_stationarity(sliced_data)
@@ -218,11 +220,13 @@ if __name__ == "__main__":
     # testrol_mean = test.rolling(window=15,min_periods=1).mean().dropna()
 
     # Find model order using auto arima function
+    #model = findmodelOrder(train)
     #model = findmodelOrder(trainrol_mean)
     
+    t.tic()
     # Forecast result for direct data
-    forecastResult(train,test,(5,1,0))
-
-    #Forecast result for rolling mean of data
-    #forecastResult(trainrol_mean,testrol_mean,(3,0,2))
-  
+    #forecastResult(train,test,(5,1,0))
+    
+    # Forecast result for rolling mean of data
+    forecastResult(trainrol_mean,testrol_mean,(3,1,0))
+    t.toc()
